@@ -1,36 +1,64 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import os
 import requests
+import google.generativeai as genai
 
 app = Flask(__name__)
 
-# ---------- ENV VARS ----------
 MY_NUMBER = os.getenv("MY_NUMBER")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
+
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel("gemini-2.5-flash")
+
+def get_daily_news():
+    url = (
+        "https://newsapi.org/v2/top-headlines?"
+        "language=en&"
+        "pageSize=5&"  # Number of articles
+        f"apiKey={NEWS_API_KEY}"
+    )
+
+    res = requests.get(url)
+    data = res.json()
+
+    if "articles" not in data:
+        return "Couldn't fetch the news today."
+
+    articles = data["articles"]
+
+    news_message = "📰 *Today's Top News*\n\n"
+
+    for i, article in enumerate(articles, start=1):
+        title = article.get("title", "No title")
+        source = article.get("source", {}).get("name", "Unknown")
+        url = article.get("url", "")
+
+        news_message += f"{i}. *{title}*\n   _({source})_\n"
+        if url:
+            news_message += f"   🔗 {url}\n\n"
+
+    return news_message.strip()
 
 
-# ---------- BASIC ROUTES ----------
 @app.route("/", methods=["GET"])
 def index():
     return {"status": "ok"}, 200
 
-
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
-
-    # ---- VERIFICATION (GET) ----
     if request.method == "GET":
         token = request.args.get("hub.verify_token")
         challenge = request.args.get("hub.challenge")
-
         if token == VERIFY_TOKEN:
             return challenge
         return "Invalid token", 403
 
-    # ---- MESSAGE HANDLING (POST) ----
     if request.method == "POST":
         data = request.json
         print("Received:", data)
@@ -42,29 +70,34 @@ def webhook():
             messages = value.get("messages")
 
             if messages:
-                msg = messages[0]
-                from_number = msg["from"]
-                text = msg["text"]["body"]
+                message = messages[0]
+                from_number = message["from"]
+                text = message["text"]["body"]
 
-                reply = f"You said: {text}"
-                send_whatsapp(from_number, reply)
+                reply = generate_reply(text)
+                send_whatsapp_message(from_number, reply)
 
         except Exception as e:
-            print("Error:", e)
+            print("Error parsing message:", e)
 
         return "OK", 200
 
+def generate_reply(text):
+    try:
+        resp = model.generate_content(f"Reply concisely to: {text}")
+        # safe extraction
+        if hasattr(resp, "text") and resp.text:
+            return resp.text
+        if hasattr(resp, "response") and resp.response:
+            return resp.response[0].content
+        return "Sorry, couldn't generate a reply."
+    except Exception as e:
+        print("Gemini error:", e)
+        return "Sorry, couldn't generate a reply."
 
-# ---------- DAILY CRON ----------
-@app.route("/daily", methods=["GET"])
-def daily():
-    send_whatsapp(MY_NUMBER, "Daily test message from cron.")
-    return {"status": "sent"}, 200
 
-
-# ---------- SEND WHATSAPP ----------
-def send_whatsapp(to, text):
-    url = f"https://graph.facebook.com/v17.0/{PHONE_NUMBER_ID}/messages"
+def send_whatsapp_message(to, text):
+    url = f"https://graph.facebook.com/v24.0/{PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
         "Content-Type": "application/json"
@@ -74,10 +107,14 @@ def send_whatsapp(to, text):
         "to": to,
         "text": {"body": text}
     }
-    r = requests.post(url, headers=headers, json=payload)
-    print("WA Response:", r.status_code, r.text)
+    requests.post(url, headers=headers, json=payload)
+
+@app.route("/daily", methods=["GET"])
+def daily_message():
+    # news = get_daily_news()  # Fetch news from NewsAPI
+    # send_whatsapp_message(MY_NUMBER, news)  # Send via WhatsApp
+    send_whatsapp_message(MY_NUMBER, "news")  # Send via WhatsApp
+    return {"status": "news_sent"}, 200
 
 
-# ---------- REQUIRED FOR VERCEL ----------
-def handler(request, response):
-    return app(request, response)
+handler = app
