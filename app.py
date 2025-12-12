@@ -116,4 +116,4 @@ def daily_message():
     return {"status": "news_sent"}, 200
 
 
-# handler = app
+handler = app
