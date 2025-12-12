@@ -12,6 +12,7 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 NEWS_API_KEY = os.environ.get("NEWS_API_KEY")
 
+model = None
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
     model = genai.GenerativeModel("gemini-2.5-flash")
@@ -83,6 +84,8 @@ def webhook():
         return "OK", 200
 
 def generate_reply(text):
+    if model is None:
+        return "AI service is not configured. Please set GEMINI_API_KEY."
     try:
         resp = model.generate_content(f"Reply concisely to: {text}")
         # safe extraction
@@ -117,4 +120,5 @@ def daily_message():
     return {"status": "news_sent"}, 200
 
 
+# Export the Flask app for Vercel
 handler = app
