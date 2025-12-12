@@ -5,10 +5,14 @@ on:
     - cron: "40 1 * * *"   # 02:40 UTC
   workflow_dispatch:
 
+# daily.yml
 jobs:
   call-vercel:
     runs-on: ubuntu-latest
     steps:
-      - name: Call Vercel Daily Endpoint
+      - name: Call Vercel Daily Endpoint (Verbose)
         run: |
-          curl -X GET "https://whatsappagent-hibas-projects-422342d6.vercel.app/api/daily/"
+          # Use -v for verbose output (shows headers, redirects, etc.)
+          # Use -L to follow redirects (if Vercel is redirecting the URL)
+          # Use -s to suppress progress meter
+          curl -s -v -L -X GET "https://whatsappagent-hibas-projects-422342d6.vercel.app/api/daily"
