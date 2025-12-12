@@ -1,0 +1,14 @@
+name: Daily WhatsApp Sender
+
+on:
+  schedule:
+    - cron: "40 1 * * *"   # 02:40 UTC
+  workflow_dispatch:
+
+jobs:
+  call-vercel:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Vercel Daily Endpoint
+        run: |
+          curl -X GET "https://your-vercel-project.vercel.app/api/daily"
