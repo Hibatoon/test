@@ -11,7 +11,9 @@ VERIFY_TOKEN = os.getenv("VERIFY_TOKEN")
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 
-@app.route("/", methods=["GET", "POST"])
+# @app.route("/", methods=["GET", "POST"])
+@app.route("/api/webhook", methods=["GET", "POST"])
+
 def webhook():
     # Verification (Meta Webhook setup)
     if request.method == "GET":
