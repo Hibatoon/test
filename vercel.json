@@ -1,17 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "app.py", "use": "@vercel/python" }
+    { "src": "api/app.py", "use": "@vercel/python" }
   ],
   "routes": [
-    { "src": "/daily", "dest": "/app.py" },
-    { "src": "/webhook", "dest": "/app.py" },
-    { "src": "/.*", "dest": "/app.py" }
+    { "src": "/daily", "dest": "/api/app.py" },
+    { "src": "/webhook", "dest": "/api/app.py" },
+    { "src": "/.*", "dest": "/api/app.py" }
   ],
   "crons": [
     {
       "path": "/daily",
-      "schedule": "00 20 * * *"
+      "schedule": "40 02 * * *"
     }
   ]
 }
