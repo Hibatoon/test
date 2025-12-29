@@ -195,7 +195,3 @@ Supports 7 news categories:
 - Verify Vercel Cron is enabled for your project
 - Check `MY_NUMBER` is set correctly with country code
 - Review Vercel Function logs for execution details
-
-## Repository
-
-[GitHub Repository](https://github.com/Hibatoon/test)
